@@ -1,9 +1,13 @@
-import React,{ useState } from "react";
+import { useState } from "react";
 import {useNavigate} from "react-router-dom"
 
 export default function ForgetPassword() {
     const [email, setEmail] = useState("");
     const navigate = useNavigate()
+
+    const handleResetPassword = () => {
+        navigate("/login")
+    }
 
 
   return (
@@ -21,6 +25,7 @@ export default function ForgetPassword() {
           <h5 className="mb-1">Email</h5>
           <input
             type="email"
+            value={email}
             placeholder="Enter your email"
             onChange={(e) => {
               setEmail(e.target.value);
@@ -29,12 +34,12 @@ export default function ForgetPassword() {
           />
           </div>
           <div>
-          <button className="w-full p-2 mt-12 rounded-full bg-[#006CE3] text-white">
+          <button className="w-full p-2 mt-12 rounded-full bg-[#006CE3] text-white" onClick={() => {handleResetPassword()}}>
             Reset Password
           </button>
           </div>
         </div>
-        <h5 className="text-center mt-5 text-xs text-[#999999] cursor-pointer" onClick={() => {navigate("/login")}}>
+        <h5 className="text-center mt-5 text-xs text-[#999999] cursor-pointer" onClick={() => {navigate("/")}}>
           Login
         </h5>
       </div>

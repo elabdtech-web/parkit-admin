@@ -13,7 +13,12 @@ export default {
         'md': '700px',
         'lg': '900px',
         'xl': '1200px',
+        '2xl': '1350px',
+        '3xl': '1400px',
       }
+    },
+    fontFamily: {
+      'sora': ['Sora', 'sans-serif'],
     },
   },
   plugins: [],
