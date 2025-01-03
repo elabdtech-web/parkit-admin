@@ -6,7 +6,7 @@ export default function ErrorPage() {
       <h1 className="text-4xl font-bold mb-4">404 - Page Not Found</h1>
       <p className="text-lg mb-6">The page you are looking for does not exist.</p>
       <Link
-        to="/dashboard"
+        to="/admin/dashboard"
         className="px-6 py-3 bg-black text-white rounded-md hover:bg-white hover:text-black"
       >
         Go Back to Home

@@ -49,7 +49,7 @@ export default function Login() {
         const q = query(collection(db, "admin"), where("email", "==", email));
         const querySnapshot = await getDocs(q);
         if (!querySnapshot.empty) {
-          navigate("/dashboard");
+          navigate("/admin/dashboard");
         }
       }
       if (!response) {
@@ -65,20 +65,21 @@ export default function Login() {
   useEffect (()=>{
     const unsubscribe = onAuthStateChanged(auth, async (currentUser) => {
       if (currentUser) {
-        navigate("/dashboard");
+        navigate("/admin/dashboard");
       }
       if (!currentUser) {
-        navigate("/");
+        navigate("/login");
       }
     });
     return () => unsubscribe();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
 
   return (
     <div className="h-screen w-full flex flex-col justify-center items-center relative">
       <img
-        src="/Frame 2.png"
+        src="/Admin.png"
         alt=""
         className="md:w-[150px] w-[80px] absolute top-4 left-4"
       />

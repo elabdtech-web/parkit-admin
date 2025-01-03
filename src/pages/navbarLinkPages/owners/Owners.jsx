@@ -1,84 +1,90 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Link, Outlet, useLocation } from "react-router-dom";
+import { db } from "../../../firebase/FirebaseConfig";
+import { collection, query, getDocs, doc, updateDoc } from "firebase/firestore";
+import Loading from "../../../components/loadingComponent/LoadingSpinner";
+import { toast } from "react-toastify";
+import { AiFillEdit } from "react-icons/ai";
 
 export default function Owners() {
   const location = useLocation();
-  const isUsersPage = location.pathname === "/dashboard/owners";
+  const isUsersPage = location.pathname === "/admin/owners";
   const [stepsValue, setStepsValue] = useState("pending");
   const [isPopupOpen, setIsPopupOpen] = useState(false);
   const [isConfirmationOpen, setIsConfirmationOpen] = useState(false);
   const [confirmationAction, setConfirmationAction] = useState("");
   const [selectedUser, setSelectedUser] = useState(null);
-  const [editUser, setEditUser] = useState(null);
-  const [data, setData] = useState([
-    {
-      id: 1,
-      UserName: "John Doe",
-      Email: "john@doe.com",
-      Contact: "123456789011",
-      Date: "20 Jan 2023",
-      Status: "Active",
-    },
-    {
-      id: 2,
-      UserName: "Jane Smith",
-      Email: "jane@smith.com",
-      Contact: "098765432122",
-      Date: "22 March 2022",
-      Status: "Inactive",
-    },
-    {
-      id: 3,
-      UserName: "Bob Johnson",
-      Email: "bob@johnson.com",
-      Contact: "567890123433",
-      Date: "27 April 2023",
-      Status: "Blocked",
-    },
-    {
-      id: 4,
-      UserName: "Alice Brown",
-      Email: "alice@brown.com",
-      Contact: "345678901234",
-      Date: "15 May 2023",
-      Status: "Pending",
-    },
-  ]);
+  const [editOwner, setEditOwner] = useState(null);
+  const [data, setData] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [username, setUsername] = useState("");
+  const [email, setEmail] = useState("");
+
+  const fetchOwnersData = async () => {
+    try {
+      const q = query(collection(db, "owners"));
+      const querySnapshot = await getDocs(q);
+      setData(querySnapshot.docs.map((doc) => doc.data()));
+      setLoading(false);
+    } catch (error) {
+      toast.error("Error fetching owners data");
+      console.error("Error fetching users data:", error);
+    }
+  };
+
+  useEffect(() => {
+    fetchOwnersData();
+  }, []);
 
   // Filter the data based on the selected status
   const filteredData = data.filter((item) =>
     stepsValue === "active"
-      ? item.Status === "Active"
+      ? item.status === "Active"
       : stepsValue === "inactive"
-      ? item.Status === "Inactive"
-      : stepsValue === "blocked"
-      ? item.Status === "Blocked"
+      ? item.status === "Inactive"
+      // : stepsValue === "blocked"
+      // ? item.Status === "Blocked"
       : stepsValue === "pending"
-      ? item.Status === "Pending"
+      ? item.status === "Pending"
       : true
   );
 
   const openEditPopup = (user) => {
-    setEditUser(user);
-    setIsPopupOpen(true);
-  };
-
-  const closeEditPopup = () => {
-    setEditUser(null);
-    setIsPopupOpen(false);
-  };
-
-  const handleInputChange = (e) => {
-    const { name, value } = e.target;
-    setEditUser((prevUser) => ({ ...prevUser, [name]: value }));
-  };
-
-  const saveUserDetails = () => {
-    setData((prevData) =>
-      prevData.map((user) => (user.id === editUser.id ? { ...editUser } : user))
-    );
-    closeEditPopup();
-  };
+      setEditOwner(user);
+      setIsPopupOpen(true);
+    };
+  
+    const closeEditPopup = () => {
+      setEditOwner(null);
+      setIsPopupOpen(false);
+      fetchOwnersData();
+    };
+  
+    useEffect(() => {
+      if (editOwner) {
+        setUsername(editOwner.username);
+        setEmail(editOwner.email);
+        // setContact(editUser.contact);
+      }
+    }, [editOwner]);
+  
+    const saveOwnerDetails = async () => {
+      try {
+        setLoading(true);
+        const userDocRef = doc(db, "owners", editOwner.id);
+        await updateDoc(userDocRef, {
+          username: username,
+          email: email,
+          // contact: contact
+        });
+        toast.success("Owner details updated successfully");
+        setLoading(false);
+        closeEditPopup();
+      } catch (error) {
+        console.error("Error updating owner details:", error);
+      }
+    };
+ 
 
   const openConfirmation = (action, user) => {
     setConfirmationAction(action);
@@ -93,26 +99,20 @@ export default function Owners() {
   };
 
   const confirmAction = () => {
-    setData((prevData) =>
-      prevData.map((user) =>
-        user.id === selectedUser.id
-          ? {
-              ...user,
-              Status:
-                confirmationAction === "deactivate"
-                  ? "Inactive"
-                  : confirmationAction === "block"
-                  ? "Blocked"
-                  : confirmationAction === "activate"
-                  ? "Active"
-                  : confirmationAction === "unblock"
-                  ? "Active"
-                  : user.Status,
-            }
-          : user
-      )
-    );
+    try {
+      const userDocRef = doc(db, "owners", selectedUser.id);
+      if (confirmationAction === "deactivate") {
+        updateDoc(userDocRef, { status: "Inactive" });
+      }
+      if (confirmationAction === "activate") {
+        updateDoc(userDocRef, { status: "Active" });
+      }
+    } catch (error) {
+      toast.error("An error occurred while updating user status.");
+      console.error("Error updating user status:", error);
+    }
     closeConfirmation();
+    fetchOwnersData();
   };
 
   return (
@@ -122,38 +122,38 @@ export default function Owners() {
           <table className="w-full rounded-2xl bg-white">
             <thead>
               <tr className="flex gap-4 items-center px-4 w-full text-md my-4">
-                <button
+                <td
                   className={`hover:bg-[#006CE3] hover:text-white px-3 py-1 rounded-full cursor-pointer ${
                     stepsValue === "pending" ? "bg-[#006CE3] text-white" : ""
                   }`}
                   onClick={() => setStepsValue("pending")}
                 >
                   Pending Approval
-                </button>
-                <button
+                </td>
+                <td
                   className={`hover:bg-[#006CE3] hover:text-white px-3 py-1 rounded-full cursor-pointer ${
                     stepsValue === "active" ? "bg-[#006CE3] text-white" : ""
                   }`}
                   onClick={() => setStepsValue("active")}
                 >
                   Active
-                </button>
-                <button
+                </td>
+                <td
                   className={`hover:bg-[#006CE3] hover:text-white px-3 py-1 rounded-full cursor-pointer ${
                     stepsValue === "inactive" ? "bg-[#006CE3] text-white" : ""
                   }`}
                   onClick={() => setStepsValue("inactive")}
                 >
                   Inactive
-                </button>
-                <button
+                </td>
+                {/* <td
                   className={`hover:bg-[#006CE3] hover:text-white px-3 py-1 rounded-full cursor-pointer ${
                     stepsValue === "blocked" ? "bg-[#006CE3] text-white" : ""
                   }`}
                   onClick={() => setStepsValue("blocked")}
                 >
                   Blocked
-                </button>
+                </td> */}
               </tr>
               <tr className="text-sm text-blue-500 bg-blue-50 flex justify-between px-5 rounded-full py-2 mt-2">
                 <th className="w-[20%]">UserName</th>
@@ -166,111 +166,158 @@ export default function Owners() {
               </tr>
             </thead>
             <tbody>
-              {filteredData.map((item, index) => (
-                <tr
-                  key={index}
-                  className="text-sm flex justify-between items-center text-center px-5 py-2 mt-2 border-b hover:text-[#006CE3] cursor-pointer"
-                >
-                  <td className="w-[20%]">
-                    <Link to={`./${item.id}`}>{item.UserName}</Link>
-                  </td>
-                  <td className="w-[20%]">
-                    <Link to={`./${item.id}`}>{item.Email}</Link>
-                  </td>
-                  <td className="w-[20%]">
-                    <Link to={`./${item.id}`}>{item.Contact}</Link>
-                  </td>
-                  <td
-                    className={`w-[10%] ${
-                      stepsValue === "pending"
-                        ? ""
-                        : item.Status === "Active"
-                        ? "text-green-500"
-                        : item.Status === "Inactive"
-                        ? "text-red-500"
-                        : "text-yellow-500"
-                    }`}
-                  >
-                    {stepsValue === "pending" ? item.Date : item.Status}
-                  </td>
-                  <td className="w-[30%] flex justify-center items-center gap-2">
-                    {stepsValue === "pending" ? (
-                      <>
-                        <button
-                          className="px-2 py-1 bg-[#006CE3] text-white rounded-full"
-                          onClick={() => openConfirmation("approve", item)}
-                        >
-                          Approve
-                        </button>
-                        <button
-                          className="px-2 py-1 bg-red-600 text-white rounded-full"
-                          onClick={() => openConfirmation("cancel", item)}
-                        >
-                          Cancel
-                        </button>
-                      </>
-                    ) : (
-                      <>
-                        {item.Status === "Active" && (
-                          <>
-                            <button
-                              className="px-2 py-1 bg-[#006CE3] text-white rounded-full"
-                              onClick={() =>
-                                openConfirmation("deactivate", item)
-                              }
-                            >
-                              Deactivate
-                            </button>
-                            <button
-                              className="px-2 py-1 bg-[#006CE3] text-white rounded-full"
-                              onClick={() => openConfirmation("block", item)}
-                            >
-                              Block
-                            </button>
-                            <button
-                              className="px-2 py-1 bg-[#006CE3] text-white rounded-full"
-                              onClick={() => openEditPopup(item)}
-                            >
-                              Edit
-                            </button>
-                          </>
-                        )}
-                        {item.Status === "Inactive" && (
-                          <>
-                            <button
-                              className="px-2 py-1 bg-[#006CE3] text-white rounded-full"
-                              onClick={() => openConfirmation("activate", item)}
-                            >
-                              Activate
-                            </button>
-                            <button
-                              className="px-2 py-1 bg-[#006CE3] text-white rounded-full"
-                              onClick={() => openConfirmation("block", item)}
-                            >
-                              Block
-                            </button>
-                            <button
-                              className="px-2 py-1 bg-[#006CE3] text-white rounded-full"
-                              onClick={() => openEditPopup(item)}
-                            >
-                              Edit
-                            </button>
-                          </>
-                        )}
-
-                        {item.Status === "Blocked" && (
-                          <button
-                            className="px-2 py-1 bg-[#006CE3] text-white rounded-full"
-                            onClick={() => openConfirmation("unblock", item)}
-                          >
-                            Unblock
-                          </button>
-                        )}
-                      </>
-                    )}
+              {loading ? (
+                <tr className="text-center">
+                  <td colSpan="10" className="py-4">
+                    <Loading />
                   </td>
                 </tr>
-              ))}
+              ) : (
+                <>
+                  {filteredData.length === 0 ? (
+                    <tr className="text-center">
+                      <td colSpan="10" className="py-4">
+                        {stepsValue === "pending"
+                          ? "No Pending Approval"
+                          : stepsValue === "active"
+                          ? "No Active Owners"
+                          : stepsValue === "inactive"
+                          ? "No Inactive Owners"
+                          // : stepsValue === "blocked"
+                          // ? "No Blocked Owners"
+                          : ""}
+                      </td>
+                    </tr>
+                  ) : (
+                    <>
+                      {filteredData.map((item, index) => (
+                        <tr
+                          key={index}
+                          className="text-sm flex justify-between items-center text-center px-5 py-2 mt-2 border-b hover:text-[#006CE3] cursor-pointer"
+                        >
+                          <td className="w-[20%]">
+                            <Link to={`./${item.id}`}>{item.username}</Link>
+                          </td>
+                          <td className="w-[20%]">
+                            <Link to={`./${item.id}`}>{item.email}</Link>
+                          </td>
+                          <td className="w-[20%]">
+                            <Link to={`./${item.id}`}>{item.contact}</Link>
+                          </td>
+                          <td
+                            className={`w-[10%] ${
+                              stepsValue === "pending"
+                                ? "text-blue-500"
+                                : stepsValue === "active"
+                                ? "text-green-500"
+                                : stepsValue === "inactive"
+                                ? "text-red-500"
+                                : "text-yellow-500"
+                            }`}
+                          >
+                            {stepsValue === "pending"
+                              ? item.Date
+                              : stepsValue === "active"
+                              ? "Active"
+                              : stepsValue === "inactive"
+                              ? "Inactive"
+                              // : "Blocked"
+                              : ""}
+                          </td>
+                          <td className="w-[30%] flex justify-center items-center text-xs gap-2">
+                            {stepsValue === "pending" ? (
+                              <>
+                                <button
+                                  className="px-2 py-1 bg-[#006CE3] text-white rounded-full"
+                                  onClick={() =>
+                                    openConfirmation("approve", item)
+                                  }
+                                >
+                                  Approve
+                                </button>
+                                <button
+                                  className="px-2 py-1 bg-red-600 text-white rounded-full"
+                                  onClick={() =>
+                                    openConfirmation("cancel", item)
+                                  }
+                                >
+                                  Cancel
+                                </button>
+                              </>
+                            ) : (
+                              <>
+                                {stepsValue === "active" && (
+                                  <>
+                                    <button
+                                      className="px-2 py-1 bg-[#006CE3] text-white rounded-full"
+                                      onClick={() =>
+                                        openConfirmation("deactivate", item)
+                                      }
+                                    >
+                                      Deactivate
+                                    </button>
+                                    {/* <button
+                                      className="px-2 py-1 bg-[#006CE3] text-white rounded-full"
+                                      onClick={() =>
+                                        openConfirmation("block", item)
+                                      }
+                                    >
+                                      Block
+                                    </button> */}
+                                    <button
+                                      className="px-2 py-1 bg-black text-white rounded-full"
+                                      onClick={() => openEditPopup(item)}
+                                    >
+                                      <AiFillEdit size={15}/>
+                                    </button>
+                                  </>
+                                )}
+                                {stepsValue === "inactive" && (
+                                  <>
+                                    <button
+                                      className="px-2 py-1 bg-[#006CE3] text-white rounded-full"
+                                      onClick={() =>
+                                        openConfirmation("activate", item)
+                                      }
+                                    >
+                                      Activate
+                                    </button>
+                                    {/* <button
+                                      className="px-2 py-1 bg-[#006CE3] text-white rounded-full"
+                                      onClick={() =>
+                                        openConfirmation("block", item)
+                                      }
+                                    >
+                                      Block
+                                    </button> */}
+                                    <button
+                                      className="px-2 py-1 bg-black text-white rounded-full"
+                                      onClick={() => openEditPopup(item)}
+                                    >
+                                      <AiFillEdit size={15}/>
+                                    </button>
+                                  </>
+                                )}
+
+                                {/* {stepsValue === "blocked" && (
+                                  <button
+                                    className="px-2 py-1 bg-[#006CE3] text-white rounded-full"
+                                    onClick={() =>
+                                      openConfirmation("unblock", item)
+                                    }
+                                  >
+                                    Unblock
+                                  </button>
+                                )} */}
+                              </>
+                            )}
+                          </td>
+                        </tr>
+                      ))}
+                    </>
+                  )}
+                </>
+              )}
             </tbody>
           </table>
         ) : (
@@ -285,42 +332,45 @@ export default function Owners() {
             <button className="absolute text-sm" onClick={closeEditPopup}>
               Cancel
             </button>
-            <h2 className="text-xl  mb-6 text-center">Edit User</h2>
+            <h2 className="text-xl mb-6 text-center">Edit Owner</h2>
             <label className="mb-2 text-sm text-gray-400">Username:</label>
             <input
               type="text"
-              name="UserName"
-              value={editUser.UserName}
-              onChange={handleInputChange}
+              name="username"
+              value={username}
+              onChange={(e) => setUsername(e.target.value)}
               className="border p-3 w-full text-sm rounded-full mb-3"
             />
-
             <label className="mb-2 text-sm text-gray-400">Email:</label>
             <input
               type="email"
-              name="Email"
-              value={editUser.Email}
-              onChange={handleInputChange}
+              name="email"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
               className="border p-3 w-full text-sm rounded-full mb-3"
             />
-            <label className="mb-2 text-sm text-gray-400">Contact:</label>
-            <input
-              type="text"
-              name="Contact"
-              value={editUser.Contact}
-              onChange={handleInputChange}
-              className="border p-3 w-full text-sm rounded-full mb-6"
-            />
-
+            {/* <label className="mb-2 text-sm text-gray-400">Contact:</label>
+          <input
+            type="text"
+            name="contact"
+            value={editUser.contact}
+            onChange={(e)=>setContact(e.target.value)}
+            className="border p-3 w-full text-sm rounded-full mb-6"
+          /> */}
+            {loading ? (
+              <Loading />
+            ):(
             <button
               className="px-4 py-2 bg-blue-500 text-white rounded-full text-sm w-full"
-              onClick={saveUserDetails}
+              onClick={saveOwnerDetails}
             >
               Update
             </button>
+            )}
           </div>
         </div>
       )}
+
 
       {/* Confirmation Modal */}
       {isConfirmationOpen && (
@@ -337,14 +387,14 @@ export default function Owners() {
                 ? "Approve"
                 : confirmationAction === "deactivate"
                 ? "Deactivate"
-                : confirmationAction === "block"
-                ? "Block"
+                // : confirmationAction === "block"
+                // ? "Block"
                 : confirmationAction === "activate"
                 ? "Activate"
-                : confirmationAction === "unblock"
-                ? "Unblock"
+                // : confirmationAction === "unblock"
+                // ? "Unblock"
                 : ""}{" "}
-              User
+              Owner
             </h2>
             <h2 className="text-sm text-gray-400 mb-6 text-center">
               Are you sure you want to{" "}
@@ -352,14 +402,14 @@ export default function Owners() {
                 ? "approve"
                 : confirmationAction === "deactivate"
                 ? "deactivate"
-                : confirmationAction === "block"
-                ? "block"
+                // : confirmationAction === "block"
+                // ? "block"
                 : confirmationAction === "activate"
                 ? "activate"
-                : confirmationAction === "unblock"
-                ? "unblock"
+                // : confirmationAction === "unblock"
+                // ? "unblock"
                 : ""}{" "}
-              this user?
+              this owner?
             </h2>
             <div className="flex justify-between w-full">
               <button
@@ -368,12 +418,12 @@ export default function Owners() {
                     ? "bg-[#006CE3]"
                     : confirmationAction === "deactivate"
                     ? "bg-[#006CE3]"
-                    : confirmationAction === "block"
-                    ? "bg-[#006CE3]"
+                    // : confirmationAction === "block"
+                    // ? "bg-[#006CE3]"
                     : confirmationAction === "activate"
                     ? "bg-[#006CE3]"
-                    : confirmationAction === "unblock"
-                    ? "bg-[#006CE3]"
+                    // : confirmationAction === "unblock"
+                    // ? "bg-[#006CE3]"
                     : ""
                 } text-white rounded-full  w-full`}
                 onClick={confirmAction}
@@ -382,12 +432,12 @@ export default function Owners() {
                   ? "Approve"
                   : confirmationAction === "deactivate"
                   ? "Deactivate"
-                  : confirmationAction === "block"
-                  ? "Block"
+                  // : confirmationAction === "block"
+                  // ? "Block"
                   : confirmationAction === "activate"
                   ? "Activate"
-                  : confirmationAction === "unblock"
-                  ? "Unblock"
+                  // : confirmationAction === "unblock"
+                  // ? "Unblock"
                   : ""}
               </button>
             </div>

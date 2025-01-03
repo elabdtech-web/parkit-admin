@@ -11,17 +11,20 @@ import OwnerDetails from "./pages/navbarLinkPages/owners/OwnerDetails";
 import Earning from "./pages/navbarLinkPages/Earning";
 import Settings from "./pages/navbarLinkPages/Settings";
 import ParkingSpace from "./pages/navbarLinkPages/ParkingSpace";
+import PayoutRequests from "./pages/navbarLinkPages/PayoutRequests";
 import ErrorPage from "./pages/errorPage/ErrorPage";
+import LandingPage from "./pages/landingPage/LandingPage";
 
 export default function App() {
   return (
-    <div className="App bg-[#E1E1E1] font-sora">
+    <div className="App bg-[#E1E1E1] font-sora h-screen">
       <BrowserRouter>
         <Routes>
-          <Route path="/" element={<Login />} />
+          <Route path="/" element={<LandingPage />} />
+          <Route path="/login" element={<Login />} />
           <Route path="/forgetPassword" element={<ForgetPassword />} />
-          <Route path="/dashboard" element={<Layout/>} >
-            <Route index element={<Dashboard/>} />
+          <Route path="/admin" element={<Layout/>} >
+            <Route path="dashboard" element={<Dashboard/>} />
             <Route path="booking" element={<Booking/>} />
             <Route path="users" element={<Users/>} >
               <Route path=":id" element={<UserDetails/>} />
@@ -32,6 +35,7 @@ export default function App() {
             <Route path="earning" element={<Earning/>} />
             <Route path="settings" element={<Settings/>} />
             <Route path="parkingSpace" element={<ParkingSpace/>} />
+            <Route path="payoutRequests" element={<PayoutRequests/>} />
           </Route>
           <Route path="*" element={<ErrorPage />} />
         </Routes>

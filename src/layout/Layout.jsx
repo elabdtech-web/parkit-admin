@@ -8,7 +8,6 @@ import { auth } from "../firebase/FirebaseConfig";
 
 export default function Layout() {
   const [isNavbarOpen, setNavbarOpen] = useState(false);
-  const [user, setUser] = useState(null);
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -26,13 +25,14 @@ export default function Layout() {
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, async (currentUser) => {
       if (currentUser) {
-        navigate("/dashboard");
+        navigate("/admin/dashboard");
       }
       if (!currentUser) {
-        navigate("/");
+        navigate("/login");
       }
     });
     return () => unsubscribe();
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const toggleNavbar = () => {
@@ -44,7 +44,7 @@ export default function Layout() {
         <Navbar toggleNavbar={toggleNavbar} isOpen={isNavbarOpen} />
       )}
       <div className="flex-1">
-        <Topbar />
+        <Topbar toggleSidebar={toggleNavbar} isOpen={isNavbarOpen} />
         <Outlet />
       </div>
     </div>

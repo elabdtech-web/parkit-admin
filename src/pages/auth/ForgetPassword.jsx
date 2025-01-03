@@ -12,7 +12,7 @@ export default function ForgetPassword() {
 
   return (
     <div className="h-screen w-full  flex flex-col justify-center items-center relative">
-        <img src="/Frame 2.png" alt="" className="md:w-[150px] w-[80px] absolute top-4 left-4"/>
+        <img src="/Admin.png" alt="" className="md:w-[150px] w-[80px] absolute top-4 left-4"/>
       <div className="sm:w-[450px] w-[300px]">
         <div className="text-center mb-10">
           <h1 className="text-3xl font-semibold mb-1">Forgot Password!</h1>
@@ -39,7 +39,7 @@ export default function ForgetPassword() {
           </button>
           </div>
         </div>
-        <h5 className="text-center mt-5 text-xs text-[#999999] cursor-pointer" onClick={() => {navigate("/")}}>
+        <h5 className="text-center mt-5 text-xs text-[#999999] cursor-pointer" onClick={() => {navigate("/login")}}>
           Login
         </h5>
       </div>
